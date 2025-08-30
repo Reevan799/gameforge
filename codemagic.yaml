@@ -1,0 +1,32 @@
+workflows:
+  android-workflow:
+    name: Build Android APK
+    max_build_duration: 60
+    instance_type: mac_mini_m1
+
+    environment:
+      flutter: stable
+      xcode: latest
+      vars:
+        PACKAGE_NAME: "com.example.gameforge"
+
+    scripts:
+      - name: Install dependencies
+        script: flutter pub get
+
+      - name: Analyze project
+        script: flutter analyze
+
+      - name: Run tests
+        script: flutter test
+
+      - name: Build release APK
+        script: flutter build apk --release
+
+    artifacts:
+      - build/app/outputs/flutter-apk/app-release.apk
+
+    publishing:
+      email:
+        recipients:
+          - your@email.com
