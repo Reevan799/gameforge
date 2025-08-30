@@ -36,7 +36,7 @@ class _AsteroidsGameState extends State<AsteroidsGame>
   // asteroid spawn manager
   Timer? _asteroidSpawnTimer;
 
-  final Random _rand = Random();
+  final Random _rand = Random(); // ✅ now used for asteroid spawning & scoring
 
   @override
   void initState() {
@@ -64,7 +64,9 @@ class _AsteroidsGameState extends State<AsteroidsGame>
       } else {
         if (asteroids.length < 7) {
           setState(() {
-            asteroids.add(Asteroid.fromOutside(color: Colors.deepPurpleAccent));
+            asteroids.add(
+              Asteroid.fromOutside(color: Colors.deepPurpleAccent),
+            );
           });
         }
       }
@@ -225,7 +227,9 @@ class _AsteroidsGameState extends State<AsteroidsGame>
         for (int i = 0; i < poly.length && !hit; i++) {
           final a = poly[i];
           final b = poly[(i + 1) % poly.length];
-          if (pointOnSegment(bullet.position, a, b, eps: 1.5)) hit = true;
+          if (pointOnSegment(bullet.position, a, b, eps: 1.5)) {
+            hit = true;
+          }
         }
         if (!hit && pointInPolygon(bullet.position, poly)) hit = true;
 
@@ -234,8 +238,7 @@ class _AsteroidsGameState extends State<AsteroidsGame>
           asteroid.isDead = true;
           score += 10;
 
-          final rand = Random();
-          int burstCount = 4 + rand.nextInt(3);
+          int burstCount = 4 + _rand.nextInt(3); // ✅ using class-level random
           for (int i = 0; i < burstCount; i++) {
             hitParticles.add(HitParticle(asteroid.position, asteroid.color));
           }
@@ -265,8 +268,7 @@ class _AsteroidsGameState extends State<AsteroidsGame>
       for (var asteroid in asteroids) {
         final asteroidPoly = asteroid.getVertices();
         if (polygonsIntersect(shipPoly, asteroidPoly)) {
-          final rand = Random();
-          int burstCount = 4 + rand.nextInt(3);
+          int burstCount = 4 + _rand.nextInt(3);
           for (int i = 0; i < burstCount; i++) {
             hitParticles.add(HitParticle(ship.position, Colors.red));
           }
@@ -358,8 +360,10 @@ class Ship {
     speedFactor += initialAccel;
     if (speedFactor > 1.0) speedFactor = 1.0;
 
-    position =
-        Offset(position.dx, position.dy + (targetY - position.dy) * 0.08 * speedFactor);
+    position = Offset(
+      position.dx,
+      position.dy + (targetY - position.dy) * 0.08 * speedFactor,
+    );
 
     final bottomLimit = screenH;
     if (position.dy >= bottomLimit) {
@@ -384,7 +388,9 @@ class Ship {
     final path = Path();
     final poly = getPolygon();
     path.moveTo(poly[0].dx, poly[0].dy);
-    for (int i = 1; i < poly.length; i++) path.lineTo(poly[i].dx, poly[i].dy);
+    for (int i = 1; i < poly.length; i++) {
+      path.lineTo(poly[i].dx, poly[i].dy);
+    }
     path.close();
     return path;
   }
@@ -471,7 +477,9 @@ class Asteroid {
     for (int i = 0; i < sides; i++) {
       double angle = (2 * pi / sides) * i;
       double r = size * offsets[i];
-      verts.add(Offset(position.dx + cos(angle) * r, position.dy + sin(angle) * r));
+      verts.add(
+        Offset(position.dx + cos(angle) * r, position.dy + sin(angle) * r),
+      );
     }
     return verts;
   }
@@ -481,7 +489,9 @@ class Asteroid {
     final verts = getVertices();
     if (verts.isEmpty) return path;
     path.moveTo(verts[0].dx, verts[0].dy);
-    for (int i = 1; i < verts.length; i++) path.lineTo(verts[i].dx, verts[i].dy);
+    for (int i = 1; i < verts.length; i++) {
+      path.lineTo(verts[i].dx, verts[i].dy);
+    }
     path.close();
     return path;
   }
@@ -498,11 +508,13 @@ class HitParticle {
 
   HitParticle(this.position, this.color)
       : velocity = Offset(
-            (_rand.nextDouble() - 0.5) * 6, (_rand.nextDouble() - 0.5) * 6);
+          (_rand.nextDouble() - 0.5) * 6,
+          (_rand.nextDouble() - 0.5) * 6,
+        );
 
   void update() {
     position += velocity;
-    life -= 0.08; // fades faster as requested earlier
+    life -= 0.08; // fades faster
     if (life <= 0) isDead = true;
   }
 }
@@ -541,88 +553,67 @@ class GamePainter extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2;
     final bulletPaint = Paint()
-      ..color = Colors.grey.shade800.withOpacity(0.3) // increased by 10%
+      ..color = Colors.grey.shade800.withValues(alpha: 0.3) // fixed
       ..style = PaintingStyle.fill;
     final asteroidPaint = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2;
 
-    // HUD Score (center top) - grey and bold with opacity and extra top padding
+    // HUD Score (center top)
     final hudStyle = TextStyle(
-      color: const Color(0xFF666666).withOpacity(0.85),
+      color: const Color(0xFF666666).withValues(alpha: 0.85), // fixed
       fontSize: 16,
       fontWeight: FontWeight.bold,
       fontFamily: 'DecimaMono',
     );
     final scorePainter = TextPainter(
       text: TextSpan(
-        text: "Score: $score    High: $highScore",
+        text: 'Score: $score    High: $highScore', // single quotes
         style: hudStyle,
       ),
       textAlign: TextAlign.center,
       textDirection: TextDirection.ltr,
     );
     scorePainter.layout(maxWidth: size.width);
-    // a bit more top padding
     scorePainter.paint(canvas, Offset(size.width / 2 - scorePainter.width / 2, 28));
 
-    // Developed by DareWorld fade bottom -- changed to light grey for visibility on white
-    // if (dareOpacity > 0) {
-    //   final devPainter = TextPainter(
-    //     text: TextSpan(
-    //       text: "Developed by DareWorld",
-    //       style: TextStyle(
-    //         color: const Color.fromARGB(255, 169, 169, 169).withOpacity(dareOpacity), // light grey
-    //         fontSize: 18,
-    //         fontFamily: 'DecimaMono',
-    //       ),
-    //     ),
-    //     textAlign: TextAlign.center,
-    //     textDirection: TextDirection.ltr,
-    //   );
-    //   devPainter.layout(maxWidth: size.width);
-    //   devPainter.paint(canvas, Offset(size.width / 2 - devPainter.width / 2, size.height - 28));
-    // }
-    
-          if (dareOpacity > 0) {
-        final devPainter = TextPainter(
-          text: TextSpan(
-            text: "Developed by DareWorld 😎",
-            style: TextStyle(
-              color: const Color.fromARGB(255, 169, 169, 169).withOpacity(dareOpacity), // light grey
-              fontSize: size.width * 0.045, // responsive font size (4.5% of width)
-              fontFamily: 'DecimaMono',
-              fontWeight: FontWeight.bold, // bold text
-            ),
+    // "Developed by DareWorld" footer
+    if (dareOpacity > 0) {
+      final devPainter = TextPainter(
+        text: TextSpan(
+          text: 'Developed by DareWorld 😎', // single quotes
+          style: TextStyle(
+            color: const Color.fromARGB(255, 169, 169, 169).withValues(alpha: dareOpacity), // fixed
+            fontSize: size.width * 0.045,
+            fontFamily: 'DecimaMono',
+            fontWeight: FontWeight.bold,
           ),
-          textAlign: TextAlign.center,
-          textDirection: TextDirection.ltr,
-        );
+        ),
+        textAlign: TextAlign.center,
+        textDirection: TextDirection.ltr,
+      );
 
-        devPainter.layout(maxWidth: size.width);
+      devPainter.layout(maxWidth: size.width);
+      devPainter.paint(
+        canvas,
+        Offset(
+          size.width / 2 - devPainter.width / 2,
+          size.height - devPainter.height - (size.height * 0.02),
+        ),
+      );
+    }
 
-        // Draw with bottom padding (2% of screen height)
-        devPainter.paint(
-          canvas,
-          Offset(
-            size.width / 2 - devPainter.width / 2,
-            size.height - devPainter.height - (size.height * 0.02),
-          ),
-        );
-      }
-
-
-    // Draw ship (triangle). If invulnerable, blink visibility handled by state
+    // Draw ship
     if (shipVisible) {
       canvas.drawPath(ship.getPath(), shipPaint);
     }
 
-    // Draw bullets (slightly transparent)
+    // Draw bullets
     for (var b in bullets) {
       canvas.drawCircle(b.position, 3, bulletPaint);
     }
 
-    // Draw asteroids (jagged polygons)
+    // Draw asteroids
     for (var a in asteroids) {
       asteroidPaint.color = a.color;
       canvas.drawPath(a.getPath(), asteroidPaint);
@@ -631,16 +622,16 @@ class GamePainter extends CustomPainter {
     // Draw hit particles
     for (var p in hitParticles) {
       final paint = Paint()
-        ..color = p.color.withOpacity(p.life)
+        ..color = p.color.withValues(alpha: p.life) // fixed
         ..style = PaintingStyle.fill;
       canvas.drawCircle(p.position, 3, paint);
     }
 
-    // Game Over UI: dark grey title and play again below (use DecimaMono)
+    // Game Over UI
     if (gameOver) {
       final titlePainter = TextPainter(
         text: TextSpan(
-          text: "Game Over",
+          text: 'Game Over',
           style: TextStyle(
             color: Colors.grey.shade800,
             fontSize: 32,
@@ -654,14 +645,13 @@ class GamePainter extends CustomPainter {
       titlePainter.layout(maxWidth: size.width);
       titlePainter.paint(canvas, Offset(size.width / 2 - titlePainter.width / 2, size.height / 2 - 70));
 
-      // SLOW pulsing Play Again - compute small scale factor using time
-      // slower frequency than before for gentle pulse
+      // Play Again (pulsing)
       final double t = DateTime.now().millisecondsSinceEpoch / 1000.0;
-      final double pulse = 1.0 + 0.08 * sin(t * 1.4); // slower frequency, slightly larger amplitude
+      final double pulse = 1.0 + 0.08 * sin(t * 1.4);
 
       final playPainter = TextPainter(
         text: TextSpan(
-          text: "Play Again",
+          text: 'Play Again', // single quotes
           style: TextStyle(
             color: Colors.grey.shade800,
             fontSize: 20,
@@ -674,13 +664,11 @@ class GamePainter extends CustomPainter {
       );
       playPainter.layout(maxWidth: size.width);
 
-      // center and scale
       canvas.save();
       final dx = size.width / 2;
       final dy = size.height / 2 - 20 + playPainter.height / 2;
       canvas.translate(dx, dy);
       canvas.scale(pulse, pulse);
-      // draw at -width/2, -height/2 because we translated to center
       playPainter.paint(canvas, Offset(-playPainter.width / 2, -playPainter.height / 2));
       canvas.restore();
     }
@@ -688,4 +676,3 @@ class GamePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
-}
